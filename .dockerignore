@@ -1,0 +1,12 @@
+node_modules
+.git
+.env
+*.db
+*.db-shm
+*.db-wal
+uploads
+dist
+client/dist
+server/dist
+coverage
+npm-debug.log
