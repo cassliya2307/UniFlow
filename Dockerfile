@@ -54,16 +54,17 @@ COPY --from=builder /app/client/dist ./client/dist
 # Copy root package.json
 COPY --from=builder /app/package.json ./
 
-# Create uploads directories writable by app user and fix prisma permissions
-# /app/uploads for local Docker Compose, /data for Railway Volume
-RUN mkdir -p /app/uploads /data /data/uploads && chown -R nextjs:nodejs /app/uploads /data /app/server/prisma
-RUN mkdir -p /app/server/prisma && chown -R nextjs:nodejs /app/server/prisma
-RUN chown -R nextjs:nodejs /app/node_modules/@prisma /app/node_modules/.prisma 2>&1 | head -5 || true
+# Create directories (will be fixed at runtime by entrypoint for Railway volume compatibility)
+RUN mkdir -p /app/uploads /data /data/uploads
 
-USER nextjs
+# Add entrypoint script for runtime permission setup
+COPY docker-entrypoint.sh /
+RUN chmod +x /docker-entrypoint.sh
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
 
 EXPOSE 3000
 
 ENV PORT 3000
 
-CMD ["sh", "-c", "mkdir -p ${UPLOAD_DIR:-/app/uploads} && mkdir -p $(dirname ${DATABASE_URL#file:}) 2>/dev/null || true; npx prisma migrate deploy --schema=./server/prisma/schema.prisma && node server/dist/index.js"]
+CMD ["node", "server/dist/index.js"]
