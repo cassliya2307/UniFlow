@@ -21,4 +21,7 @@ EXPOSE 3000
 ENV PORT 3000
 ENV NODE_ENV production
 
+# Serve the built React app as a static SPA
+# Falls back to index.html for any route (SPA routing)
+# The proxy in vite.config.dev routes /api to the backend
 CMD ["npx", "vite", "preview", "--port", "${PORT:-3000}", "--host", "--strictPort"]
