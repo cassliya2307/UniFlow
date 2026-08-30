@@ -71,18 +71,6 @@ docker-compose up --build
 docker-compose --profile migrate up migrate
 ```
 
-### Environment Variables
-
-Copy `.env.example` to `.env` and configure:
-
-```bash
-DATABASE_URL="file:./dev.db"
-JWT_SECRET="your-super-secret-jwt-key-change-in-production"
-PORT=3000
-NODE_ENV=production
-CLIENT_URL="https://your-domain.com"
-```
-
 ## Project Structure
 
 ```
