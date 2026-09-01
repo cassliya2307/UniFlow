@@ -17,13 +17,12 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/client/dist ./client/dist
+COPY --from=builder /app/client/node_modules ./client/node_modules
 
 EXPOSE 3000
 
-ENV PORT=3000
 ENV NODE_ENV=production
 
 # Serve the built React app as a static SPA
 # Falls back to index.html for any route (SPA routing)
-# The proxy in vite.config.dev routes /api to the backend
-CMD ["npx", "vite", "preview", "--port", "${PORT:-3000}", "--host", "--strictPort"]
+CMD "npx vite preview --port $PORT --host --strictPort"
