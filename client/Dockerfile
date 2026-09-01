@@ -17,6 +17,7 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/client/dist ./client/dist
+COPY --from=builder /app/client/vite.config.ts ./client/vite.config.ts
 COPY --from=builder /app/node_modules ./node_modules
 
 ENV PATH=/node_modules/.bin:$PATH
