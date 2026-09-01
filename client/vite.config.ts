@@ -13,6 +13,6 @@ export default defineConfig({
     }
   },
   preview: {
-    allowedHosts: ['client-production-a930.up.railway.app']
+    allowedHosts: [/^client-production-a930.up.railway.app$/i]
   }
 })
