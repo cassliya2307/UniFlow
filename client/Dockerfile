@@ -27,4 +27,4 @@ ENV NODE_ENV=production
 
 # Serve the built React app as a static SPA
 # Falls back to index.html for any route (SPA routing)
-CMD ["sh", "-c", "npx vite preview --host 0.0.0.0 --port ${PORT:-8080}"]
+CMD ["sh", "-c", "npx vite preview --config client/vite.config.ts --host 0.0.0.0 --port ${PORT:-8080}"]
