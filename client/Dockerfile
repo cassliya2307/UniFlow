@@ -1,14 +1,14 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-COPY client/package.json ./
-COPY package-lock.json ./
+COPY package.json package-lock.json ./
+COPY client/package.json ./client/package.json
 
 RUN npm ci --workspace=client
 
-COPY client/ .
+COPY client/ ./client/
 
-RUN npm run build
+RUN npm run build --workspace=client
 
 FROM node:20-alpine AS runner
 WORKDIR /app
@@ -16,12 +16,12 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/dist ./client/dist
+COPY --from=builder /app/client/dist ./client/dist
 
 EXPOSE 3000
 
-ENV PORT 3000
-ENV NODE_ENV production
+ENV PORT=3000
+ENV NODE_ENV=production
 
 # Serve the built React app as a static SPA
 # Falls back to index.html for any route (SPA routing)
