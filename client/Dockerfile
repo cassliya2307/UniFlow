@@ -17,7 +17,7 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/client/dist ./client/dist
-COPY --from=builder /app/client/node_modules ./client/node_modules
+COPY --from=builder /app/node_modules ./node_modules
 
 EXPOSE 3000
 
