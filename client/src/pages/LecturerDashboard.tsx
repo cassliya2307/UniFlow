@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../utils/api'
-import { formatDate } from '../utils/format'
+import { formatDate, formatDateTime, getStatusBadge } from '../utils/format'
 import LoadingSpinner from '../components/LoadingSpinner'
 import type { LecturerDashboard, LecturerProjectStats } from '../types'
 
@@ -287,8 +287,11 @@ export default function LecturerDashboard() {
   }
 
   if (isLoading) return <LoadingSpinner />
-  if (error) return <div className="alert alert-error">{error}</div>
+  if (error) return <div className="alert alert-error" role="alert">{error}</div>
   if (!dashboard) return null
+
+  const publishedCount = dashboard.projects.reduce((sum, project) => sum + project.publishedCount, 0)
+  const needsGrading = dashboard.recentSubmissions.filter(item => item.status === 'SUBMITTED')
 
   return (
     <div>
@@ -614,6 +617,98 @@ export default function LecturerDashboard() {
         </div>
       </div>
 
+      <div className="stat-grid">
+        <div className="stat-card">
+          <div className="stat-value">{dashboard.totalStudents}</div>
+          <div className="stat-label">Total Students</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value" style={{ color: 'var(--color-warning)' }}>{dashboard.pendingGrading}</div>
+          <div className="stat-label">Pending Grading</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value" style={{ color: 'var(--color-success)' }}>{publishedCount}</div>
+          <div className="stat-label">Published</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value" style={{ color: 'var(--color-primary)' }}>{dashboard.upcomingDeadlines.length}</div>
+          <div className="stat-label">Upcoming Deadlines</div>
+        </div>
+      </div>
+
+      <h2 style={{ fontSize: '20px', fontWeight: '600', margin: '32px 0 16px' }}>Needs Grading</h2>
+      {needsGrading.length === 0 ? (
+        <div className="card" style={{ padding: '24px', textAlign: 'center', color: 'var(--color-gray-500)' }}>
+          No submissions need grading.
+        </div>
+      ) : (
+        <div className="card">
+          {needsGrading.map((item, index) => (
+            <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', padding: '16px 24px', borderBottom: index < needsGrading.length - 1 ? '1px solid var(--color-gray-200)' : undefined }}>
+              <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+                <div style={{ fontWeight: '600' }}>{item.student.name}</div>
+                <div style={{ fontSize: '13px', color: 'var(--color-gray-500)' }}>{item.project.title} ({item.course.code})</div>
+              </div>
+              <span className={`badge ${getStatusBadge(item.status)}`}>
+                {item.status.replace('_', ' ')}
+              </span>
+              <span style={{ fontSize: '13px', color: 'var(--color-gray-500)' }}>{formatDateTime(item.submittedAt)}</span>
+              <Link to={`/lecturer/submissions/${item.id}/grade`} className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '13px' }}>
+                Grade
+              </Link>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <h2 style={{ fontSize: '20px', fontWeight: '600', margin: '32px 0 16px' }}>Recent Submissions</h2>
+      {dashboard.recentSubmissions.length === 0 ? (
+        <div className="card" style={{ padding: '24px', textAlign: 'center', color: 'var(--color-gray-500)' }}>
+          No recent submissions.
+        </div>
+      ) : (
+        <div className="card">
+          {dashboard.recentSubmissions.map((item, index) => (
+            <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', padding: '16px 24px', borderBottom: index < dashboard.recentSubmissions.length - 1 ? '1px solid var(--color-gray-200)' : undefined }}>
+              <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+                <div style={{ fontWeight: '600' }}>{item.student.name}</div>
+                <div style={{ fontSize: '13px', color: 'var(--color-gray-500)' }}>{item.project.title} ({item.course.code})</div>
+              </div>
+              <span className={`badge ${getStatusBadge(item.status)}`}>
+                {item.status.replace('_', ' ')}
+              </span>
+              <span style={{ fontSize: '13px', color: 'var(--color-gray-500)' }}>{formatDateTime(item.submittedAt)}</span>
+              <span style={{ fontSize: '13px', color: 'var(--color-gray-600)' }}>
+                {item.score !== null && item.score !== undefined ? `${item.score} / 100` : '—'}
+              </span>
+              <Link to={`/lecturer/submissions/${item.id}/grade`} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '13px' }}>
+                {item.status === 'SUBMITTED' ? 'Grade' : 'Review'}
+              </Link>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <h2 style={{ fontSize: '20px', fontWeight: '600', margin: '32px 0 16px' }}>Upcoming Deadlines</h2>
+      {dashboard.upcomingDeadlines.length === 0 ? (
+        <div className="card" style={{ padding: '24px', textAlign: 'center', color: 'var(--color-gray-500)' }}>
+          No upcoming deadlines.
+        </div>
+      ) : (
+        <div className="card">
+          {dashboard.upcomingDeadlines.map((item, index) => (
+            <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', padding: '16px 24px', borderBottom: index < dashboard.upcomingDeadlines.length - 1 ? '1px solid var(--color-gray-200)' : undefined }}>
+              <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+                <div style={{ fontWeight: '600' }}>{item.title}</div>
+                <div style={{ fontSize: '13px', color: 'var(--color-gray-500)' }}>{item.course.name} ({item.course.code})</div>
+              </div>
+              <span style={{ fontSize: '14px', fontWeight: '500' }}>{formatDate(item.deadline)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <h2 style={{ fontSize: '20px', fontWeight: '600', margin: '32px 0 16px' }}>Your Projects</h2>
       {dashboard.projects.length === 0 ? (
         <div className="card" style={{ padding: '40px', textAlign: 'center', color: 'var(--color-gray-500)' }}>
           <p>No projects yet.</p>

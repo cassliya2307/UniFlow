@@ -84,6 +84,10 @@ class ApiClient {
     return this.request<Array<{ id: string; name: string; code: string }>>('/lecturer/courses')
   }
 
+  async getLecturerStudents() {
+    return this.request<LecturerStudentsResponse>('/lecturer/students')
+  }
+
   async getProjectSubmissions(projectId: string) {
     return this.request<ProjectSubmissions>(`/lecturer/projects/${projectId}/submissions`)
   }
@@ -162,4 +166,4 @@ class ApiClient {
 
 export const api = new ApiClient()
 
-import type { User, StudentDashboard, Project, Submission, LecturerDashboard, ProjectSubmissions, GradeSubmissionResponse } from '../types'
+import type { User, StudentDashboard, Project, Submission, LecturerDashboard, LecturerStudentsResponse, ProjectSubmissions, GradeSubmissionResponse } from '../types'

@@ -19,10 +19,25 @@ router.get('/dashboard', async (req: AuthenticatedRequest, res) => {
     include: {
       projects: {
         include: {
-          submissions: true
+          submissions: {
+            include: {
+              student: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true
+                }
+              }
+            }
+          }
         }
       }
     }
+  })
+
+  const enrollments = await prisma.enrollment.findMany({
+    where: { course: { lecturerId: userId } },
+    select: { studentId: true }
   })
 
   const projectStats = courses.flatMap(course =>
@@ -52,9 +67,71 @@ router.get('/dashboard', async (req: AuthenticatedRequest, res) => {
     })
   )
 
+  const allSubmissions = courses.flatMap(course =>
+    course.projects.flatMap(project =>
+      project.submissions.map(submission => ({ submission, project, course }))
+    )
+  )
+
+  const totalStudents = new Set(enrollments.map(e => e.studentId)).size
+
+  const pendingGrading = allSubmissions.filter(
+    ({ submission }) => submission.status === 'SUBMITTED'
+  ).length
+
+  const recentSubmissions = allSubmissions
+    .filter(({ submission }) => submission.submittedAt !== null && submission.status !== 'NOT_SUBMITTED')
+    .sort((a, b) =>
+      new Date(b.submission.submittedAt!).getTime() - new Date(a.submission.submittedAt!).getTime()
+    )
+    .slice(0, 10)
+    .map(({ submission, project, course }) => ({
+      id: submission.id,
+      student: {
+        id: submission.student.id,
+        name: submission.student.name,
+        email: submission.student.email
+      },
+      project: {
+        id: project.id,
+        title: project.title
+      },
+      course: {
+        id: course.id,
+        name: course.name,
+        code: course.code
+      },
+      submittedAt: submission.submittedAt,
+      status: submission.status,
+      score: submission.score
+    }))
+
+  const now = new Date()
+  const upcomingDeadlines = courses
+    .flatMap(course =>
+      course.projects
+        .filter(project => project.deadline && new Date(project.deadline) > now)
+        .map(project => ({
+          id: project.id,
+          title: project.title,
+          course: {
+            id: course.id,
+            name: course.name,
+            code: course.code
+          },
+          deadline: project.deadline
+        }))
+    )
+    .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())
+    .slice(0, 5)
+
   res.json({
     name: req.user!.name,
-    projects: projectStats
+    projects: projectStats,
+    totalStudents,
+    pendingGrading,
+    recentSubmissions,
+    upcomingDeadlines
   })
 })
 
@@ -96,6 +173,80 @@ router.post('/courses', async (req: AuthenticatedRequest, res) => {
     id: course.id,
     name: course.name,
     code: course.code
+  })
+})
+
+router.get('/students', async (req: AuthenticatedRequest, res) => {
+  const userId = req.user!.userId
+
+  const enrollments = await prisma.enrollment.findMany({
+    where: { course: { lecturerId: userId } },
+    include: {
+      student: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          matriculationNumber: true
+        }
+      },
+      course: {
+        select: {
+          id: true,
+          name: true,
+          code: true
+        }
+      }
+    }
+  })
+
+  const submissions = await prisma.submission.findMany({
+    where: { project: { course: { lecturerId: userId } } },
+    select: {
+      studentId: true,
+      projectId: true,
+      status: true,
+      score: true,
+      submittedAt: true,
+      project: {
+        select: {
+          id: true,
+          title: true
+        }
+      }
+    }
+  })
+
+  const submissionsByStudent = new Map<string, typeof submissions>()
+  for (const submission of submissions) {
+    const list = submissionsByStudent.get(submission.studentId)
+    if (list) {
+      list.push(submission)
+    } else {
+      submissionsByStudent.set(submission.studentId, [submission])
+    }
+  }
+
+  res.json({
+    students: enrollments.map(enrollment => ({
+      id: enrollment.student.id,
+      name: enrollment.student.name,
+      email: enrollment.student.email,
+      matriculationNumber: enrollment.student.matriculationNumber,
+      course: {
+        id: enrollment.course.id,
+        name: enrollment.course.name,
+        code: enrollment.course.code
+      },
+      enrolledAt: enrollment.createdAt,
+      projects: (submissionsByStudent.get(enrollment.student.id) || []).map(submission => ({
+        projectId: submission.project.id,
+        title: submission.project.title,
+        status: submission.status,
+        score: submission.score,
+        submittedAt: submission.submittedAt
+      }))
+    }))
   })
 })
 

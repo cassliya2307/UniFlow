@@ -261,10 +261,7 @@ label {
   }
 
   .header-user {
-    max-width: 38vw;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    display: none;
   }
 }
 

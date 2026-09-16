@@ -73,9 +73,45 @@ export interface StudentProject {
   submittedAt?: string | null
 }
 
+export interface LecturerRecentSubmission {
+  id: string
+  student: {
+    id: string
+    name: string
+    email: string
+  }
+  project: {
+    id: string
+    title: string
+  }
+  course: {
+    id: string
+    name: string
+    code: string
+  }
+  submittedAt: string
+  status: string
+  score: number | null
+}
+
+export interface LecturerUpcomingDeadline {
+  id: string
+  title: string
+  course: {
+    id: string
+    name: string
+    code: string
+  }
+  deadline: string
+}
+
 export interface LecturerDashboard {
   name: string
   projects: LecturerProjectStats[]
+  totalStudents: number
+  pendingGrading: number
+  recentSubmissions: LecturerRecentSubmission[]
+  upcomingDeadlines: LecturerUpcomingDeadline[]
 }
 
 export interface LecturerProjectStats {
@@ -93,6 +129,34 @@ export interface LecturerProjectStats {
   gradedCount: number
   publishedCount: number
   pendingCount: number
+}
+
+export interface LecturerStudentCourse {
+  id: string
+  name: string
+  code: string
+}
+
+export interface LecturerStudentProject {
+  projectId: string
+  title: string
+  status: string
+  score: number | null
+  submittedAt: string | null
+}
+
+export interface LecturerStudent {
+  id: string
+  name: string
+  email: string
+  matriculationNumber: string | null
+  course: LecturerStudentCourse
+  enrolledAt: string
+  projects: LecturerStudentProject[]
+}
+
+export interface LecturerStudentsResponse {
+  students: LecturerStudent[]
 }
 
 export interface ProjectSubmissions {

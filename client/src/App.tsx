@@ -6,6 +6,7 @@ import NotFound from './pages/NotFound'
 import StudentDashboard from './pages/StudentDashboard'
 import StudentProject from './pages/StudentProject'
 import LecturerDashboard from './pages/LecturerDashboard'
+import Students from './pages/Students'
 import ProjectSubmissions from './pages/ProjectSubmissions'
 import GradeSubmission from './pages/GradeSubmission'
 import Layout from './components/Layout'
@@ -46,6 +47,7 @@ function LecturerRoutes() {
     <Layout>
       <Routes>
         <Route path="dashboard" element={<LecturerDashboard />} />
+        <Route path="students" element={<Students />} />
         <Route path="projects/:projectId/submissions" element={<ProjectSubmissions />} />
         <Route path="submissions/:submissionId/grade" element={<GradeSubmission />} />
         <Route path="" element={<Navigate to="dashboard" replace />} />

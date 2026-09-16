@@ -1,6 +1,6 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { ReactNode } from 'react'
+import { ReactNode, type CSSProperties } from 'react'
 
 interface LayoutProps {
   children: ReactNode
@@ -17,6 +17,14 @@ export default function Layout({ children }: LayoutProps) {
 
   const isStudent = user?.role === 'STUDENT'
   const basePath = isStudent ? '/student' : '/lecturer'
+  const location = useLocation()
+
+  const navLinkStyle = (active: boolean): CSSProperties => ({
+    fontSize: '14px',
+    fontWeight: active ? 700 : 500,
+    color: active ? 'var(--color-primary)' : 'var(--color-gray-600)',
+    textDecoration: 'none'
+  })
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -34,6 +42,16 @@ export default function Layout({ children }: LayoutProps) {
               OPGS
             </Link>
           <nav className="app-header-nav" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            {!isStudent && (
+              <>
+                <Link to="/lecturer/dashboard" style={navLinkStyle(location.pathname === '/lecturer/dashboard')}>
+                  Dashboard
+                </Link>
+                <Link to="/lecturer/students" style={navLinkStyle(location.pathname === '/lecturer/students')}>
+                  Students
+                </Link>
+              </>
+            )}
             <span className="header-user">
               {user?.name} ({user?.role})
             </span>
