@@ -8,6 +8,7 @@ import rateLimit from 'express-rate-limit'
 import authRoutes from './routes/auth'
 import studentRoutes from './routes/student'
 import lecturerRoutes from './routes/lecturer'
+import registrationRoutes from './routes/registration'
 import { prisma } from './utils/db'
 
 dotenv.config()
@@ -76,6 +77,7 @@ app.get('/api/health', async (req, res) => {
 })
 
 app.use('/api/auth', authRoutes)
+app.use('/api/student/register', registrationRoutes)
 app.use('/api/student', studentRoutes)
 app.use('/api/lecturer', lecturerRoutes)
 

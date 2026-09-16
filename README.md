@@ -1,4 +1,4 @@
-# University Project Portal - MVP
+# OPGS — Online Project Grading System
 
 A simple, production-ready university project grading portal built with React, Express, TypeScript, Prisma, and SQLite.
 

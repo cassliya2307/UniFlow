@@ -84,6 +84,8 @@ export interface LecturerProjectStats {
   courseCode: string
   courseId: string
   title: string
+  description: string
+  requirements?: string | null
   deadline: string
   submissionType: 'LINK' | 'FILE' | 'LINK_AND_FILE'
   totalStudents: number

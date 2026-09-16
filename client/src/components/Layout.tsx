@@ -20,6 +20,7 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <a href="#main-content" className="skip-link">Skip to main content</a>
       <header style={{
         background: 'var(--color-white)',
         borderBottom: '1px solid var(--color-gray-200)',
@@ -29,11 +30,11 @@ export default function Layout({ children }: LayoutProps) {
         zIndex: 100
       }}>
         <div className="container" style={{ height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Link to={basePath + '/dashboard'} style={{ fontSize: '20px', fontWeight: '700', color: 'var(--color-primary)', textDecoration: 'none' }}>
-            University Project Portal
-          </Link>
-          <nav style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <span style={{ color: 'var(--color-gray-600)', fontSize: '14px' }}>
+<Link to={basePath + '/dashboard'} style={{ fontSize: '20px', fontWeight: '700', color: 'var(--color-primary)', textDecoration: 'none' }}>
+              OPGS
+            </Link>
+          <nav className="app-header-nav" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <span className="header-user">
               {user?.name} ({user?.role})
             </span>
             <button onClick={handleLogout} className="btn btn-secondary" style={{ padding: '8px 12px' }}>
@@ -42,7 +43,7 @@ export default function Layout({ children }: LayoutProps) {
           </nav>
         </div>
       </header>
-      <main className="container" style={{ flex: 1, paddingTop: '24px', paddingBottom: '24px', width: '100%' }}>
+      <main id="main-content" className="container" style={{ flex: 1, paddingTop: '24px', paddingBottom: '24px', width: '100%' }}>
         {children}
       </main>
       <footer style={{
@@ -53,7 +54,7 @@ export default function Layout({ children }: LayoutProps) {
         color: 'var(--color-gray-500)',
         fontSize: '14px'
       }}>
-        University Project Portal — MVP
+        OPGS — Online Project Grading System
       </footer>
     </div>
   )

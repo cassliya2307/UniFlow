@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export default function Login() {
@@ -27,22 +27,16 @@ export default function Login() {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '24px'
-    }}>
-      <div className="card" style={{ width: '100%', maxWidth: '420px', padding: '40px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <h1 style={{ fontSize: '28px', fontWeight: '700', color: 'var(--color-gray-900)', marginBottom: '8px' }}>
-            University Project Portal
+    <div className="auth-page">
+      <div className="card auth-card">
+        <div className="auth-header">
+          <h1 className="auth-title">
+            OPGS
           </h1>
-          <p style={{ color: 'var(--color-gray-500)' }}>Sign in to your account</p>
+          <p className="auth-subtitle">Sign in to your account</p>
         </div>
 
-        {error && <div className="alert alert-error">{error}</div>}
+        {error && <div className="alert alert-error" role="alert">{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -54,7 +48,7 @@ export default function Login() {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
-              placeholder="lecturer@university.edu"
+              placeholder="you@university.edu"
             />
           </div>
 
@@ -67,25 +61,20 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)}
               required
               autoComplete="current-password"
-              placeholder="password123"
+              placeholder="Enter your password"
             />
           </div>
 
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '8px' }} disabled={isLoading}>
+          <button type="submit" className="btn btn-primary auth-submit" disabled={isLoading}>
             {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
-        <div style={{ marginTop: '24px', padding: '16px', background: 'var(--color-gray-50)', borderRadius: 'var(--radius)', fontSize: '13px' }}>
-          <strong>Demo Credentials:</strong>
-          <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <code>lecturer@university.edu</code>
-            <code>john@student.edu</code>
-            <code>jane@student.edu</code>
-            <code>michael@student.edu</code>
-            <code>emily@student.edu</code>
-          </div>
-          <p style={{ marginTop: '8px', color: 'var(--color-gray-500)' }}>Password for all: <code>password123</code></p>
+        <div className="auth-footer">
+          <strong>Welcome to OPGS</strong>
+          <p style={{ marginTop: '8px' }}>
+            Don&apos;t have an account? <Link to="/register">Create your student account</Link>
+          </p>
         </div>
       </div>
     </div>

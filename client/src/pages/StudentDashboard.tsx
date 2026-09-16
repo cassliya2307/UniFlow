@@ -1,7 +1,17 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../utils/api'
+import { getStatusBadge, formatDate, getDeadlineStatus } from '../utils/format'
+import LoadingSpinner from '../components/LoadingSpinner'
 import type { StudentDashboard, StudentProject } from '../types'
+
+function getDashboardErrorMessage(message: string): string {
+  if (!message) return "We couldn't load your dashboard. Please try again."
+  if (/failed to fetch|network|load failed|HTTP 5|Internal server error|Request failed/i.test(message)) {
+    return "We couldn't load your dashboard. Please try again."
+  }
+  return message
+}
 
 export default function StudentDashboard() {
   const [dashboard, setDashboard] = useState<StudentDashboard | null>(null)
@@ -22,26 +32,8 @@ export default function StudentDashboard() {
     fetchDashboard()
   }, [])
 
-  const getStatusBadge = (status: string) => {
-    const badges: Record<string, string> = {
-      NOT_SUBMITTED: 'badge-not-submitted',
-      SUBMITTED: 'badge-submitted',
-      GRADED: 'badge-graded',
-      PUBLISHED: 'badge-published'
-    }
-    return badges[status] || 'badge-not-submitted'
-  }
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
-
-  if (isLoading) return <div style={{ textAlign: 'center', padding: '40px' }}>Loading...</div>
-  if (error) return <div className="alert alert-error">{error}</div>
+  if (isLoading) return <LoadingSpinner />
+  if (error) return <div className="alert alert-error" role="alert">{getDashboardErrorMessage(error)}</div>
   if (!dashboard) return null
 
   return (
@@ -64,7 +56,7 @@ export default function StudentDashboard() {
         </div>
         <div className="stat-card">
           <div className="stat-value">{dashboard.publishedProjects}</div>
-          <div className="stat-label">Graded & Published</div>
+          <div className="stat-label">Published</div>
         </div>
         <div className="stat-card">
           <div className="stat-value">{dashboard.pendingProjects}</div>
@@ -78,19 +70,20 @@ export default function StudentDashboard() {
         </div>
         {dashboard.projects.length === 0 ? (
           <div style={{ padding: '40px', textAlign: 'center', color: 'var(--color-gray-500)' }}>
-            No projects assigned yet.
+            No projects yet.
           </div>
         ) : (
           <div className="table-container">
             <table>
+              <caption className="visually-hidden">Your projects</caption>
               <thead>
                 <tr>
-                  <th>Course</th>
-                  <th>Project</th>
-                  <th>Deadline</th>
-                  <th>Status</th>
-                  <th>Grade</th>
-                  <th style={{ width: '100px' }}>Actions</th>
+                  <th scope="col">Course</th>
+                  <th scope="col">Project</th>
+                  <th scope="col">Deadline</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Grade</th>
+                  <th scope="col" style={{ width: '100px' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -101,7 +94,15 @@ export default function StudentDashboard() {
                       <div style={{ fontSize: '12px', color: 'var(--color-gray-500)' }}>{project.courseCode}</div>
                     </td>
                     <td>{project.title}</td>
-                    <td>{formatDate(project.deadline)}</td>
+                    <td>
+                      <div>{formatDate(project.deadline)}</div>
+                      {getDeadlineStatus(project.deadline) === 'overdue' && (
+                        <span className="badge badge-overdue" style={{ marginTop: '4px' }}>Overdue</span>
+                      )}
+                      {getDeadlineStatus(project.deadline) === 'today' && (
+                        <span className="badge badge-due-today" style={{ marginTop: '4px' }}>Due today</span>
+                      )}
+                    </td>
                     <td>
                       <span className={`badge ${getStatusBadge(project.submissionStatus)}`}>
                         {project.submissionStatus.replace('_', ' ')}

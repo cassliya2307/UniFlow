@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../utils/api'
+import { formatDate } from '../utils/format'
+import LoadingSpinner from '../components/LoadingSpinner'
 import type { LecturerDashboard, LecturerProjectStats } from '../types'
 
 export default function LecturerDashboard() {
@@ -54,34 +56,112 @@ export default function LecturerDashboard() {
   const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
+  // Modal dialog refs for lightweight focus management
+  const createModalRef = useRef<HTMLDivElement>(null)
+  const courseModalRef = useRef<HTMLDivElement>(null)
+  const editModalRef = useRef<HTMLDivElement>(null)
+  const deleteModalRef = useRef<HTMLDivElement>(null)
+
+  // Element that opened the currently open modal, for focus restoration
+  const modalTriggerRef = useRef<HTMLElement | null>(null)
+  const wasModalOpenRef = useRef(false)
+
+  const getOpenModal = () => {
+    if (showCreateModal) return createModalRef.current
+    if (showCreateCourseModal) return courseModalRef.current
+    if (showEditModal) return editModalRef.current
+    if (showDeleteModal) return deleteModalRef.current
+    return null
+  }
+
   useEffect(() => {
-    const fetchDashboard = async () => {
+    const focusableSelector =
+      'button:not([disabled]), a[href], input:not([disabled]), ' +
+      'textarea:not([disabled]), select:not([disabled]), ' +
+      '[tabindex]:not([tabindex="-1"])'
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowCreateModal(false)
+        setShowCreateCourseModal(false)
+        setShowEditModal(false)
+        setShowDeleteModal(false)
+        return
+      }
+      if (e.key !== 'Tab') return
+      const container = getOpenModal()
+      if (!container) return
+      const focusable = Array.from(
+        container.querySelectorAll<HTMLElement>(focusableSelector)
+      ).filter(el => el.getClientRects().length > 0)
+      if (focusable.length === 0) {
+        e.preventDefault()
+        return
+      }
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  })
+
+  useEffect(() => {
+    const openModal =
+      showCreateModal ? createModalRef.current
+      : showCreateCourseModal ? courseModalRef.current
+      : showEditModal ? editModalRef.current
+      : showDeleteModal ? deleteModalRef.current
+      : null
+    if (openModal) {
+      if (!wasModalOpenRef.current) {
+        modalTriggerRef.current =
+          document.activeElement instanceof HTMLElement ? document.activeElement : null
+      }
+      openModal.focus()
+    } else if (wasModalOpenRef.current) {
+      const trigger = modalTriggerRef.current
+      modalTriggerRef.current = null
+      if (trigger && document.contains(trigger)) {
+        trigger.focus({ preventScroll: true })
+      }
+    }
+    wasModalOpenRef.current = openModal !== null
+  }, [showCreateModal, showCreateCourseModal, showEditModal, showDeleteModal])
+
+  const fetchData = async () => {
+    const [dashboardData, coursesData] = await Promise.all([
+      api.getLecturerDashboard(),
+      api.getLecturerCourses()
+    ])
+    setDashboard(dashboardData)
+    setCourses(coursesData)
+    setFormData(prev => ({
+      ...prev,
+      courseId: coursesData.some(course => course.id === prev.courseId)
+        ? prev.courseId
+        : (coursesData[0]?.id ?? '')
+    }))
+  }
+
+  useEffect(() => {
+    const loadDashboard = async () => {
       try {
-        const [dashboardData, coursesData] = await Promise.all([
-          api.getLecturerDashboard(),
-          api.getLecturerCourses()
-        ])
-        setDashboard(dashboardData)
-        setCourses(coursesData)
-        if (coursesData.length > 0) {
-          setFormData(prev => ({ ...prev, courseId: coursesData[0].id }))
-        }
+        await fetchData()
       } catch (err: any) {
         setError(err.message)
       } finally {
         setIsLoading(false)
       }
     }
-    fetchDashboard()
+    loadDashboard()
   }, [])
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
 
   const handleCourseChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setFormData(prev => ({ ...prev, courseId: e.target.value }))
@@ -93,6 +173,14 @@ export default function LecturerDashboard() {
 
   const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setEditFormData(prev => ({ ...prev, [e.target.name]: e.target.value }))
+  }
+
+  const refreshAfterMutation = async () => {
+    try {
+      await fetchData()
+    } catch (err: any) {
+      setError(err.message)
+    }
   }
 
   const handleCreateProject = async (e: React.FormEvent) => {
@@ -111,7 +199,7 @@ export default function LecturerDashboard() {
       })
       setShowCreateModal(false)
       setFormData(prev => ({ ...prev, title: '', description: '', requirements: '', deadline: defaultDeadline, submissionType: 'LINK' }))
-      window.location.reload()
+      await refreshAfterMutation()
     } catch (err: any) {
       setCreateError(err.message)
     } finally {
@@ -131,7 +219,7 @@ export default function LecturerDashboard() {
       })
       setShowCreateCourseModal(false)
       setCourseFormData({ name: '', code: '' })
-      window.location.reload()
+      await refreshAfterMutation()
     } catch (err: any) {
       setCourseCreateError(err.message)
     } finally {
@@ -156,7 +244,7 @@ export default function LecturerDashboard() {
         submissionType: editFormData.submissionType
       })
       setShowEditModal(false)
-      window.location.reload()
+      await refreshAfterMutation()
     } catch (err: any) {
       setEditError(err.message)
     } finally {
@@ -172,7 +260,7 @@ export default function LecturerDashboard() {
       await api.deleteProject(deletingProjectId)
       setShowDeleteModal(false)
       setDeletingProjectId(null)
-      window.location.reload()
+      await refreshAfterMutation()
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -184,8 +272,8 @@ export default function LecturerDashboard() {
     setEditingProject(project)
     setEditFormData({
       title: project.title,
-      description: '',
-      requirements: '',
+      description: project.description ?? '',
+      requirements: project.requirements ?? '',
       deadline: project.deadline ? formatDateForInput(new Date(project.deadline)) : '',
       courseId: project.courseId,
       submissionType: project.submissionType || 'LINK'
@@ -198,7 +286,7 @@ export default function LecturerDashboard() {
     setShowDeleteModal(true)
   }
 
-  if (isLoading) return <div style={{ textAlign: 'center', padding: '40px' }}>Loading...</div>
+  if (isLoading) return <LoadingSpinner />
   if (error) return <div className="alert alert-error">{error}</div>
   if (!dashboard) return null
 
@@ -207,7 +295,7 @@ export default function LecturerDashboard() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Lecturer Dashboard</h1>
-          <p className="page-subtitle">Welcome, {dashboard.name}</p>
+          <p className="page-subtitle">Welcome back, {dashboard.name}</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button className="btn btn-secondary" onClick={() => setShowCreateCourseModal(true)}>
@@ -221,9 +309,9 @@ export default function LecturerDashboard() {
 
       {/* Create Project Modal */}
       <div className="modal-overlay" style={{ display: showCreateModal ? 'flex' : 'none' }} onClick={() => setShowCreateModal(false)}>
-        <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="create-project-title" tabIndex={-1} ref={createModalRef}>
           <div className="modal-header">
-            <h2 className="modal-title">Create New Project</h2>
+            <h2 className="modal-title" id="create-project-title">Create New Project</h2>
             <button className="modal-close" onClick={() => setShowCreateModal(false)}>&times;</button>
           </div>
           <form onSubmit={handleCreateProject}>
@@ -341,9 +429,9 @@ export default function LecturerDashboard() {
 
       {/* Create Course Modal */}
       <div className="modal-overlay" style={{ display: showCreateCourseModal ? 'flex' : 'none' }} onClick={() => setShowCreateCourseModal(false)}>
-        <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="create-course-title" tabIndex={-1} ref={courseModalRef}>
           <div className="modal-header">
-            <h2 className="modal-title">Create New Course</h2>
+            <h2 className="modal-title" id="create-course-title">Create New Course</h2>
             <button className="modal-close" onClick={() => setShowCreateCourseModal(false)}>&times;</button>
           </div>
           <form onSubmit={handleCreateCourse}>
@@ -396,9 +484,9 @@ export default function LecturerDashboard() {
 
       {/* Edit Project Modal */}
       <div className="modal-overlay" style={{ display: showEditModal ? 'flex' : 'none' }} onClick={() => setShowEditModal(false)}>
-        <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="edit-project-title" tabIndex={-1} ref={editModalRef}>
           <div className="modal-header">
-            <h2 className="modal-title">Edit Project</h2>
+            <h2 className="modal-title" id="edit-project-title">Edit Project</h2>
             <button className="modal-close" onClick={() => setShowEditModal(false)}>&times;</button>
           </div>
           <form onSubmit={handleEditProject}>
@@ -506,9 +594,9 @@ export default function LecturerDashboard() {
 
       {/* Delete Confirmation Modal */}
       <div className="modal-overlay" style={{ display: showDeleteModal ? 'flex' : 'none' }} onClick={() => setShowDeleteModal(false)}>
-        <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="delete-project-title" tabIndex={-1} ref={deleteModalRef}>
           <div className="modal-header">
-            <h2 className="modal-title">Delete Project</h2>
+            <h2 className="modal-title" id="delete-project-title">Delete Project</h2>
             <button className="modal-close" onClick={() => setShowDeleteModal(false)}>&times;</button>
           </div>
           <div className="modal-body">
@@ -528,7 +616,7 @@ export default function LecturerDashboard() {
 
       {dashboard.projects.length === 0 ? (
         <div className="card" style={{ padding: '40px', textAlign: 'center', color: 'var(--color-gray-500)' }}>
-          <p>No projects assigned to you yet.</p>
+          <p>No projects yet.</p>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '16px', flexWrap: 'wrap' }}>
             <button className="btn btn-secondary" onClick={() => setShowCreateCourseModal(true)}>
               Create Course

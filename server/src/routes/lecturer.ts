@@ -40,6 +40,8 @@ router.get('/dashboard', async (req: AuthenticatedRequest, res) => {
         course: course.name,
         courseCode: course.code,
         title: project.title,
+        description: project.description,
+        requirements: project.requirements,
         deadline: project.deadline,
         totalStudents,
         submittedCount,

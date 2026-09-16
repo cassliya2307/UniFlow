@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../utils/api'
 import type { GradeSubmissionData } from '../types'
 import { calculateLetterGrade } from '../utils/grade'
+import { getStatusBadge, formatFileSize, getFileIcon } from '../utils/format'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 export default function GradeSubmission() {
   const { submissionId } = useParams<{ submissionId: string }>()
@@ -13,7 +15,9 @@ export default function GradeSubmission() {
   const [isSaving, setIsSaving] = useState(false)
   const [isPublishing, setIsPublishing] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [saveSuccess, setSaveSuccess] = useState('')
   const [publishError, setPublishError] = useState('')
+  const [downloadError, setDownloadError] = useState('')
   const [score, setScore] = useState('')
   const [feedback, setFeedback] = useState('')
 
@@ -40,6 +44,7 @@ export default function GradeSubmission() {
   const handleSaveDraft = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaveError('')
+    setSaveSuccess('')
     setIsSaving(true)
 
     try {
@@ -48,8 +53,7 @@ export default function GradeSubmission() {
         throw new Error('Score must be between 0 and 100')
       }
       await api.gradeSubmission(submissionId!, scoreNum, feedback || undefined)
-      setSaveError('')
-      alert('Grade saved as draft')
+      setSaveSuccess('Grade saved as draft')
     } catch (err: any) {
       setSaveError(err.message)
     } finally {
@@ -79,6 +83,7 @@ export default function GradeSubmission() {
   }
 
   const handleDownloadFile = async (fileId: string, fileName: string) => {
+    setDownloadError('')
     try {
       const blob = await api.downloadFile(fileId)
       const url = URL.createObjectURL(blob)
@@ -88,7 +93,7 @@ export default function GradeSubmission() {
       a.click()
       URL.revokeObjectURL(url)
     } catch (err: any) {
-      alert('Failed to download file: ' + err.message)
+      setDownloadError("We couldn't download this file. Please try again.")
     }
   }
 
@@ -103,32 +108,7 @@ export default function GradeSubmission() {
     })
   }
 
-  const getStatusBadge = (status: string) => {
-    const badges: Record<string, string> = {
-      NOT_SUBMITTED: 'badge-not-submitted',
-      SUBMITTED: 'badge-submitted',
-      GRADED: 'badge-graded',
-      PUBLISHED: 'badge-published'
-    }
-    return badges[status] || 'badge-not-submitted'
-  }
-
-  const getFileIcon = (mimeType: string) => {
-    if (mimeType.startsWith('image/')) return '🖼️'
-    if (mimeType === 'application/pdf') return '📄'
-    if (mimeType.includes('wordprocessingml')) return '📝'
-    if (mimeType.includes('presentationml')) return '📊'
-    if (mimeType === 'application/zip') return '🗜️'
-    return '📎'
-  }
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-  }
-
-  if (isLoading) return <div style={{ textAlign: 'center', padding: '40px' }}>Loading...</div>
+  if (isLoading) return <LoadingSpinner />
   if (error) return <div className="alert alert-error">{error}</div>
   if (!submission) return null
 
@@ -149,7 +129,7 @@ export default function GradeSubmission() {
         </span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
+      <div className="detail-grid">
         <div className="card" style={{ padding: '24px' }}>
           <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>Submission Details</h2>
           <dl style={{ display: 'grid', gap: '16px' }}>
@@ -178,10 +158,11 @@ export default function GradeSubmission() {
             {submission.files && submission.files.length > 0 && (
               <div>
                 <dt style={{ fontSize: '12px', fontWeight: '600', color: 'var(--color-gray-500)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Uploaded Files</dt>
+                {downloadError && <div className="alert alert-error" role="alert" style={{ marginTop: '8px' }}>{downloadError}</div>}
                 <dd style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {submission.files.map(file => (
                     <div key={file.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'var(--color-gray-50)', borderRadius: 'var(--radius)', border: '1px solid var(--color-gray-200)' }}>
-                      <span style={{ fontSize: '24px' }}>{getFileIcon(file.mimeType)}</span>
+                        <span style={{ fontSize: '24px' }} aria-hidden="true">{getFileIcon(file.mimeType)}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: '500', wordBreak: 'break-all' }}>{file.fileName}</div>
                         <div style={{ fontSize: '12px', color: 'var(--color-gray-500)' }}>{formatFileSize(file.fileSize)} • {file.mimeType}</div>
@@ -209,8 +190,9 @@ export default function GradeSubmission() {
         <div className="card" style={{ padding: '24px' }}>
           <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>Grading</h2>
 
-          {saveError && <div className="alert alert-error">{saveError}</div>}
-          {publishError && <div className="alert alert-error">{publishError}</div>}
+          {saveError && <div className="alert alert-error" role="alert">{saveError}</div>}
+          {saveSuccess && <div className="alert alert-success" role="status">{saveSuccess}</div>}
+          {publishError && <div className="alert alert-error" role="alert">{publishError}</div>}
 
           <form onSubmit={handleSaveDraft}>
             <div className="form-group">

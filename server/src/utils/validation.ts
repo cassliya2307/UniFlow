@@ -61,3 +61,11 @@ export type PublishGradeInput = z.infer<typeof publishGradeSchema>
 export type CreateProjectInput = z.infer<typeof createProjectSchema>
 export type CreateCourseInput = z.infer<typeof createCourseSchema>
 export type UpdateProjectInput = z.infer<typeof updateProjectSchema>
+
+export const registerSchema = z.object({
+  name: z.string().min(1).max(200).trim(),
+  matriculationNumber: z.string().min(1).max(30).trim(),
+  course: z.string().min(1).max(50).trim(),
+  email: z.string().email().trim(),
+  password: z.string().min(6).max(128)
+})

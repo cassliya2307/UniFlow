@@ -1,6 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import Login from './pages/Login'
+import Register from './pages/Register'
+import NotFound from './pages/NotFound'
 import StudentDashboard from './pages/StudentDashboard'
 import StudentProject from './pages/StudentProject'
 import LecturerDashboard from './pages/LecturerDashboard'
@@ -56,6 +58,7 @@ function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
       <Route
         path="/student/*"
         element={
@@ -73,7 +76,7 @@ function App() {
         }
       />
       <Route path="/" element={<Navigate to="/student/dashboard" replace />} />
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   )
 }

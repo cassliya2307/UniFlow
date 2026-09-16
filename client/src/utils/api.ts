@@ -43,6 +43,13 @@ class ApiClient {
     })
   }
 
+  async register(data: { name: string; matriculationNumber: string; course: string; email: string; password: string }) {
+    return this.request<{ token: string; user: User }>('/student/register', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    })
+  }
+
   async getMe() {
     return this.request<User>('/auth/me')
   }

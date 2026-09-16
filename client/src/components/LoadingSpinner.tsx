@@ -6,7 +6,7 @@ export default function LoadingSpinner() {
       justifyContent: 'center',
       minHeight: '400px'
     }}>
-      <div className="spinner" />
+      <div className="spinner" role="status" aria-label="Loading" />
     </div>
   )
 }

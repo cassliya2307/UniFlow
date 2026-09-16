@@ -3,6 +3,8 @@ import { useParams, Link } from 'react-router-dom'
 import { api } from '../utils/api'
 import type { Project, Submission, ProjectWithCourse, SubmissionFile } from '../types'
 import { calculateLetterGrade } from '../utils/grade'
+import { getStatusBadge, formatFileSize, getFileIcon } from '../utils/format'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 interface StudentProjectResponse extends Omit<Project, 'course'> {
   course: string
@@ -20,21 +22,23 @@ export default function StudentProject() {
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const [projectUrl, setProjectUrl] = useState('')
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [downloadError, setDownloadError] = useState('')
+
+  const fetchProject = async () => {
+    try {
+      const data = await api.getStudentProject(projectId!)
+      setProject(data as unknown as StudentProjectResponse)
+      if (data.submission?.projectUrl) {
+        setProjectUrl(data.submission.projectUrl)
+      }
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchProject = async () => {
-      try {
-        const data = await api.getStudentProject(projectId!)
-        setProject(data as unknown as StudentProjectResponse)
-        if (data.submission?.projectUrl) {
-          setProjectUrl(data.submission.projectUrl)
-        }
-      } catch (err: any) {
-        setError(err.message)
-      } finally {
-        setIsLoading(false)
-      }
-    }
     fetchProject()
   }, [projectId])
 
@@ -50,16 +54,33 @@ export default function StudentProject() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitError('')
+    setSubmitSuccess(false)
     setIsSubmitting(true)
 
     try {
       await api.submitProject(projectId!, { projectUrl: projectUrl || undefined, files: selectedFiles })
       setSubmitSuccess(true)
-      setTimeout(() => window.location.reload(), 1500)
+      setSelectedFiles([])
+      await fetchProject()
     } catch (err: any) {
       setSubmitError(err.message)
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleDownloadFile = async (fileId: string, fileName: string) => {
+    setDownloadError('')
+    try {
+      const blob = await api.downloadStudentFile(fileId)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = fileName
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err: any) {
+      setDownloadError("We couldn't download this file. Please try again.")
     }
   }
 
@@ -73,32 +94,7 @@ export default function StudentProject() {
     })
   }
 
-  const getStatusBadge = (status: string) => {
-    const badges: Record<string, string> = {
-      NOT_SUBMITTED: 'badge-not-submitted',
-      SUBMITTED: 'badge-submitted',
-      GRADED: 'badge-graded',
-      PUBLISHED: 'badge-published'
-    }
-    return badges[status] || 'badge-not-submitted'
-  }
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-  }
-
-  const getFileIcon = (mimeType: string) => {
-    if (mimeType.startsWith('image/')) return '🖼️'
-    if (mimeType === 'application/pdf') return '📄'
-    if (mimeType.includes('wordprocessingml')) return '📝'
-    if (mimeType.includes('presentationml')) return '📊'
-    if (mimeType === 'application/zip') return '🗜️'
-    return '📎'
-  }
-
-  if (isLoading) return <div style={{ textAlign: 'center', padding: '40px' }}>Loading...</div>
+  if (isLoading) return <LoadingSpinner />
   if (error) return <div className="alert alert-error">{error}</div>
   if (!project) return null
 
@@ -130,7 +126,7 @@ export default function StudentProject() {
         </span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
+      <div className="detail-grid">
         <div className="card" style={{ padding: '24px' }}>
           <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>Project Details</h2>
           <dl style={{ display: 'grid', gap: '16px' }}>
@@ -157,10 +153,10 @@ export default function StudentProject() {
           </h2>
 
           {submitSuccess && (
-            <div className="alert alert-success">Project submitted successfully!</div>
+            <div className="alert alert-success" role="status">Project submitted successfully!</div>
           )}
 
-          {submitError && <div className="alert alert-error">{submitError}</div>}
+          {submitError && <div className="alert alert-error" role="alert">{submitError}</div>}
 
           {isSubmitted ? (
             <div>
@@ -175,10 +171,11 @@ export default function StudentProject() {
               {submission.files && submission.files.length > 0 && (
                 <div style={{ marginBottom: '16px' }}>
                   <label>Uploaded Files</label>
+                  {downloadError && <div className="alert alert-error" style={{ marginTop: '8px' }}>{downloadError}</div>}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
                     {submission.files.map(file => (
                       <div key={file.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'var(--color-gray-50)', borderRadius: 'var(--radius)', border: '1px solid var(--color-gray-200)' }}>
-                        <span style={{ fontSize: '24px' }}>{getFileIcon(file.mimeType)}</span>
+                        <span style={{ fontSize: '24px' }} aria-hidden="true">{getFileIcon(file.mimeType)}</span>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: '500', wordBreak: 'break-all' }}>{file.fileName}</div>
                           <div style={{ fontSize: '12px', color: 'var(--color-gray-500)' }}>{formatFileSize(file.fileSize)} • {file.mimeType}</div>
@@ -187,14 +184,7 @@ export default function StudentProject() {
                           type="button"
                           className="btn btn-secondary"
                           style={{ padding: '6px 12px', fontSize: '12px' }}
-                          onClick={() => api.downloadStudentFile(file.id).then(blob => {
-                            const url = URL.createObjectURL(blob)
-                            const a = document.createElement('a')
-                            a.href = url
-                            a.download = file.fileName
-                            a.click()
-                            URL.revokeObjectURL(url)
-                          })}
+                          onClick={() => handleDownloadFile(file.id, file.fileName)}
                         >
                           Download
                         </button>
@@ -209,7 +199,7 @@ export default function StudentProject() {
               </div>
               {isPublished && (
                 <div style={{ padding: '16px', background: 'var(--color-success-light)', borderRadius: 'var(--radius)', border: '1px solid var(--color-success)' }}>
-                  <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#166534', marginBottom: '12px' }}>Result Published</h3>
+                  <h3 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--color-success-dark)', marginBottom: '12px' }}>Result Published</h3>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px', marginBottom: '16px' }}>
                     <div>
                       <div style={{ fontSize: '12px', color: 'var(--color-gray-500)', textTransform: 'uppercase' }}>Score</div>
@@ -264,7 +254,7 @@ export default function StudentProject() {
 
               {showFileField && (
                 <div className="form-group">
-                  <label>File Upload {requireFile && <span style={{ color: 'var(--color-danger)' }}>*</span>}</label>
+                  <label htmlFor="files">File Upload {requireFile && <span style={{ color: 'var(--color-danger)' }}>*</span>}</label>
                   <input
                     type="file"
                     id="files"
@@ -280,7 +270,7 @@ export default function StudentProject() {
                       <strong>Selected files:</strong>
                       {selectedFiles.map((file, index) => (
                         <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px', background: 'var(--color-gray-50)', borderRadius: 'var(--radius)', border: '1px solid var(--color-gray-200)' }}>
-                          <span>📎</span>
+                          <span aria-hidden="true">📎</span>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontWeight: '500', wordBreak: 'break-all' }}>{file.name}</div>
                             <div style={{ fontSize: '12px', color: 'var(--color-gray-500)' }}>{formatFileSize(file.size)} • {file.type || 'Unknown type'}</div>

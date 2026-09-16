@@ -9,17 +9,18 @@ datasource db {
 }
 
 model User {
-  id            String       @id @default(cuid())
-  name          String
-  email         String       @unique
-  passwordHash  String
-  role          String       @default("STUDENT")
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id                String       @id @default(cuid())
+  name              String
+  email             String       @unique
+  passwordHash      String
+  role              String       @default("STUDENT")
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  matriculationNumber String?  @unique
 
-  enrollments   Enrollment[]
-  submissions   Submission[]
-  courses       Course[]     @relation("CourseLecturer")
+  enrollments       Enrollment[]
+  submissions       Submission[]
+  courses           Course[]     @relation("CourseLecturer")
 }
 
 model Course {

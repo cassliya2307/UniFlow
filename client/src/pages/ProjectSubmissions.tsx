@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api } from '../utils/api'
+import { getStatusBadge, formatDateTime } from '../utils/format'
+import LoadingSpinner from '../components/LoadingSpinner'
 import type { ProjectSubmissions, SubmissionListItem } from '../types'
 
 export default function ProjectSubmissions() {
@@ -23,28 +25,7 @@ export default function ProjectSubmissions() {
     fetchSubmissions()
   }, [projectId])
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return '—'
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
-
-  const getStatusBadge = (status: string) => {
-    const badges: Record<string, string> = {
-      NOT_SUBMITTED: 'badge-not-submitted',
-      SUBMITTED: 'badge-submitted',
-      GRADED: 'badge-graded',
-      PUBLISHED: 'badge-published'
-    }
-    return badges[status] || 'badge-not-submitted'
-  }
-
-  if (isLoading) return <div style={{ textAlign: 'center', padding: '40px' }}>Loading...</div>
+  if (isLoading) return <LoadingSpinner />
   if (error) return <div className="alert alert-error">{error}</div>
   if (!data) return null
 
@@ -57,7 +38,7 @@ export default function ProjectSubmissions() {
           </Link>
           <h1 className="page-title">{data.project.title}</h1>
           <p className="page-subtitle">
-            {data.project.course} ({data.project.courseCode}) • Deadline: {formatDate(data.project.deadline)} • Type: {data.project.submissionType?.replace('_', ' ') || 'LINK'}
+            {data.project.course} ({data.project.courseCode}) • Deadline: {formatDateTime(data.project.deadline)} • Type: {data.project.submissionType?.replace('_', ' ') || 'LINK'}
           </p>
         </div>
       </div>
@@ -65,20 +46,21 @@ export default function ProjectSubmissions() {
       <div className="card">
         {data.submissions.length === 0 ? (
           <div style={{ padding: '40px', textAlign: 'center', color: 'var(--color-gray-500)' }}>
-            No student submissions yet.
+            No submissions yet.
           </div>
         ) : (
           <div className="table-container">
-            <table>
+            <table className="table-sticky-first">
+              <caption className="visually-hidden">Submissions for {data.project.title}</caption>
               <thead>
                 <tr>
-                  <th style={{ width: '250px' }}>Student</th>
-                  <th style={{ width: '140px' }}>Status</th>
-                  <th style={{ width: '200px' }}>Submitted</th>
-                  <th style={{ width: '120px' }}>Score</th>
-                  <th style={{ width: '100px' }}>Grade</th>
-                  <th style={{ width: '100px' }}>Files</th>
-                  <th style={{ width: '160px' }}>Actions</th>
+                  <th scope="col">Student</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Submitted</th>
+                  <th scope="col">Score</th>
+                  <th scope="col">Grade</th>
+                  <th scope="col">Files</th>
+                  <th scope="col">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -93,7 +75,7 @@ export default function ProjectSubmissions() {
                         {submission.status.replace('_', ' ')}
                       </span>
                     </td>
-                    <td>{formatDate(submission.submittedAt)}</td>
+                    <td>{formatDateTime(submission.submittedAt)}</td>
                     <td>
                       {submission.score !== undefined ? (
                         <span>{submission.score} / 100</span>
