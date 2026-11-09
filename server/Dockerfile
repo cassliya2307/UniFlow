@@ -14,10 +14,14 @@ RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+COPY server/node_modules ./server/node_modules
 
 # Generate Prisma client (needs schema)
 WORKDIR /app/server
-RUN npx prisma generate
+RUN ./node_modules/.bin/prisma generate
+
+# Copy generated Prisma Client to root node_modules for runtime
+RUN cp -r server/node_modules/@prisma/client /app/node_modules/@prisma/client
 
 # Build server
 WORKDIR /app/server
