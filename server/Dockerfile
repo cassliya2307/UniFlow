@@ -6,22 +6,19 @@ RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
-RUN npm ci --include=optional
+RUN npm ci --workspace=server
 
 # Rebuild the source code only when needed
 FROM base AS builder
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/server/node_modules ./server/node_modules
 COPY . .
-COPY server/node_modules ./server/node_modules
+RUN cp -r /app/server/node_modules /app/node_modules
 
 # Generate Prisma client (needs schema)
 WORKDIR /app/server
 RUN ./node_modules/.bin/prisma generate
-
-# Copy generated Prisma Client to root node_modules for runtime
-RUN cp -r server/node_modules/@prisma/client /app/node_modules/@prisma/client
 
 # Build server
 WORKDIR /app/server
@@ -38,10 +35,15 @@ RUN apk add --no-cache openssl libc6-compat
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+# Copy server dependency directory (includes @prisma/client AND .prisma/client)
+COPY --from=builder /app/server/node_modules ./server/node_modules
+
 # Copy server compiled
 COPY --from=builder /app/server/dist ./server/dist
 COPY --from=builder /app/server/package.json ./server/
 COPY --from=builder /app/server/prisma ./server/prisma
+
+# Copy node_modules (includes Prisma Client, CLI, and all runtime deps)
 
 # Copy node_modules (includes Prisma Client, CLI, and all runtime deps)
 COPY --from=builder /app/node_modules ./node_modules
