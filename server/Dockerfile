@@ -25,6 +25,7 @@ RUN echo "Prisma CLI: $(ls /app/server/node_modules/.bin/prisma)" && \
 FROM base AS builder
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/server/node_modules ./server/node_modules
 COPY . .
 
@@ -34,7 +35,7 @@ RUN /app/server/node_modules/.bin/prisma generate
 
 # Build server
 WORKDIR /app/server
-RUN npm run build
+RUN /app/node_modules/.bin/tsc
 
 # Production image, copy all the files and run server
 FROM node:20-alpine AS runner

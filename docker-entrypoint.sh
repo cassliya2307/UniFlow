@@ -25,7 +25,7 @@ echo "Ownership fixed."
 # Step 3: Run Prisma migration as nextjs
 # Since we've chowned /data to nextjs, the migration can create /data/dev.db
 echo "Running Prisma migration as nextjs..."
-su -s /bin/sh nextjs -c "/app/node_modules/.bin/prisma migrate deploy --schema=./server/prisma/schema.prisma"
+su -s /bin/sh nextjs -c "/app/server/node_modules/.bin/prisma migrate deploy --schema=./server/prisma/schema.prisma"
 echo "Prisma migration complete."
 
 # Step 4: Run the Node application as nextjs
