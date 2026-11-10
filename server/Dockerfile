@@ -6,7 +6,23 @@ RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
+COPY server/package.json ./server/package.json
+COPY client/package.json ./client/package.json
 RUN npm ci
+
+# Verify Prisma 5.10.0 CLI exists
+RUN if [ ! -x /app/node_modules/.bin/prisma ]; then echo "PRISMA CLI NOT FOUND"; exit 1; fi
+
+# Verify @prisma/client is installed
+RUN if [ ! -d /app/node_modules/@prisma/client ]; then echo "@PRISMA/CLIENT NOT FOUND"; exit 1; fi
+
+# Verify server dependencies are installed
+RUN if [ ! -d /app/node_modules/express ]; then echo "EXPRESS NOT FOUND"; exit 1; fi
+
+# Report dependency locations
+RUN echo "Prisma CLI: $(ls -la /app/node_modules/.bin/prisma)" && \
+    echo "@prisma/client: $(ls /app/node_modules/@prisma/client/)" && \
+    echo "Server dependencies installed"
 
 # Rebuild the source code only when needed
 FROM base AS builder
