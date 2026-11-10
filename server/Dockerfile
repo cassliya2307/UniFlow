@@ -17,7 +17,7 @@ COPY . .
 
 # Generate Prisma client (needs schema)
 WORKDIR /app/server
-RUN ./node_modules/.bin/prisma generate
+RUN /app/node_modules/.bin/prisma generate
 
 # Copy generated Prisma Client and .prisma/client to root for runtime
 RUN cp -r /app/server/node_modules/@prisma/client /app/node_modules/@prisma/client
