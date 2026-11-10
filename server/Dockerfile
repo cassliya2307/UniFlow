@@ -32,10 +32,6 @@ COPY . .
 WORKDIR /app/server
 RUN /app/server/node_modules/.bin/prisma generate
 
-# Copy generated Prisma Client and .prisma/client to root for runtime
-RUN cp -r /app/server/node_modules/@prisma/client /app/node_modules/@prisma/client
-RUN cp -r /app/server/node_modules/.prisma/client /app/node_modules/.prisma/client
-
 # Build server
 WORKDIR /app/server
 RUN npm run build
