@@ -53,14 +53,14 @@ COPY --from=builder /app/server/dist ./server/dist
 COPY --from=builder /app/server/package.json ./server/
 COPY --from=builder /app/server/prisma ./server/prisma
 
-# Copy node_modules (includes Prisma Client, CLI, and all runtime deps)
-COPY --from=builder /app/server/node_modules ./node_modules
-
-# Ensure Prisma engines directory is writable by nextjs user
-RUN chown -R nextjs:nodejs /app/node_modules/@prisma
+# Copy root dependencies (Express, etc. - hoisted by npm workspaces)
+COPY --from=builder /app/node_modules ./node_modules
 
 # Copy server dependency directory (includes @prisma/client AND .prisma/client)
 COPY --from=builder /app/server/node_modules ./server/node_modules
+
+# Ensure Prisma engines directory is writable by nextjs user
+RUN chown -R nextjs:nodejs /app/server/node_modules/@prisma
 
 # Create directories for Railway volume compatibility
 RUN mkdir -p /app/uploads /data /data/uploads
