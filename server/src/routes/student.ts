@@ -215,15 +215,17 @@ router.post('/projects/:projectId/submit', upload.array('files'), async (req: Au
 
   // Save files if any
   if (files && files.length > 0) {
-    await prisma.submissionFile.createMany({
-      data: files.map(file => ({
-        submissionId: submission.id,
-        fileName: file.originalname,
-        filePath: file.path,
-        mimeType: file.mimetype,
-        fileSize: file.size
+    await prisma.$transaction(
+      files.map(file => prisma.submissionFile.create({
+        data: {
+          submissionId: submission.id,
+          fileName: file.originalname,
+          filePath: file.path,
+          mimeType: file.mimetype,
+          fileSize: file.size
+        }
       }))
-    })
+    )
   }
 
   res.json({

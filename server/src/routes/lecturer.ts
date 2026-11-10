@@ -391,13 +391,15 @@ router.post('/projects', async (req: AuthenticatedRequest, res) => {
   })
 
   if (enrollments.length > 0) {
-    await prisma.submission.createMany({
-      data: enrollments.map(e => ({
-        projectId: project.id,
-        studentId: e.studentId,
-        status: 'NOT_SUBMITTED'
+    await prisma.$transaction(
+      enrollments.map(e => prisma.submission.create({
+        data: {
+          projectId: project.id,
+          studentId: e.studentId,
+          status: 'NOT_SUBMITTED'
+        }
       }))
-    })
+    )
   }
 
   res.status(201).json({
