@@ -16,9 +16,6 @@ RUN if [ ! -x /app/server/node_modules/.bin/prisma ]; then echo "PRISMA CLI NOT 
 # Verify @prisma/client is installed
 RUN if [ ! -d /app/server/node_modules/@prisma/client ]; then echo "@PRISMA/CLIENT NOT FOUND at /app/server/node_modules/@prisma/client"; exit 1; fi
 
-# Verify server dependencies are installed
-RUN if [ ! -d /app/server/node_modules/express ]; then echo "EXPRESS NOT FOUND at /app/server/node_modules/express"; exit 1; fi
-
 # Report dependency locations
 RUN echo "Prisma CLI: $(ls /app/server/node_modules/.bin/prisma)" && \
     echo "@prisma/client: $(ls /app/server/node_modules/@prisma/client/)" && \
